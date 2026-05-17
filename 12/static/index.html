@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多智能体服务 - 智能助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 700px;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 18px;
+            margin: 0 12px;
+        }
+
+        .user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .bot .message-avatar {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 20px;
+            line-height: 1.6;
+            font-size: 15px;
+            position: relative;
+        }
+
+        .user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .bot .message-content {
+            background: white;
+            color: #374151;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-content .agent-type {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .message-content .agent-travel {
+            color: #3b82f6;
+        }
+
+        .message-content .agent-joke {
+            color: #f59e0b;
+        }
+
+        .message-content .agent-couplet {
+            color: #10b981;
+        }
+
+        .message-content .agent-other {
+            color: #6b7280;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .send-button {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            background: white;
+            border-radius: 20px;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .agent-info {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            padding: 12px 20px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .agent-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .agent-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .agent-icon.travel { background: #dbeafe; color: #3b82f6; }
+        .agent-icon.joke { background: #fef3c7; color: #f59e0b; }
+        .agent-icon.couplet { background: #d1fae5; color: #10b981; }
+        .agent-icon.other { background: #e5e7eb; color: #6b7280; }
+
+        .clear-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .clear-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .chat-container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .agent-info {
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .agent-card {
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 多智能体助手</h1>
+            <p>旅行规划 · 笑话大师 · 对联创作</p>
+            <button class="clear-button" onclick="clearChat()">清空对话</button>
+        </div>
+
+        <div class="agent-info">
+            <div class="agent-card">
+                <span class="agent-icon travel">🚗</span>
+                <span>旅行规划</span>
+            </div>
+            <div class="agent-card">
+                <span class="agent-icon joke">😄</span>
+                <span>笑话大师</span>
+            </div>
+            <div class="agent-card">
+                <span class="agent-icon couplet">📜</span>
+                <span>对联创作</span>
+            </div>
+            <div class="agent-card">
+                <span class="agent-icon other">💡</span>
+                <span>其他问答</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="agent-type agent-other">系统</div>
+                    你好！我是多智能体助手，我可以帮你：
+                    <ul>
+                        <li>🗺️ 规划旅行路线</li>
+                        <li>😄 讲笑话</li>
+                        <li>📜 创作对联</li>
+                    </ul>
+                    请问有什么可以帮助你的？
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="输入你的问题..."
+                onkeydown="handleKeyPress(event)"
+            >
+            <button class="send-button" id="sendButton" onclick="sendMessage()">
+                发送
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let threadId = null;
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const button = document.getElementById('sendButton');
+            const messages = document.getElementById('chatMessages');
+            
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 禁用按钮和输入
+            button.disabled = true;
+            input.disabled = true;
+
+            // 添加用户消息
+            addMessage(message, 'user');
+            input.value = '';
+
+            // 添加打字指示器
+            const typingIndicator = createTypingIndicator();
+            messages.appendChild(typingIndicator);
+            messages.scrollTop = messages.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        thread_id: threadId
+                    })
+                });
+
+                const data = await response.json();
+                threadId = data.thread_id;
+
+                // 移除打字指示器
+                messages.removeChild(typingIndicator);
+
+                // 添加机器人响应
+                addMessage(data.response, 'bot');
+                
+            } catch (error) {
+                messages.removeChild(typingIndicator);
+                addMessage('抱歉，服务暂时不可用。', 'bot');
+                console.error('Error:', error);
+            } finally {
+                button.disabled = false;
+                input.disabled = false;
+                input.focus();
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // 尝试解析响应类型
+            if (sender === 'bot') {
+                const agentType = detectAgentType(text);
+                if (agentType) {
+                    const typeSpan = document.createElement('div');
+                    typeSpan.className = `agent-type agent-${agentType.type}`;
+                    typeSpan.textContent = agentType.label;
+                    content.appendChild(typeSpan);
+                }
+            }
+            
+            const textNode = document.createElement('div');
+            textNode.innerHTML = text.replace(/\n/g, '<br>');
+            content.appendChild(textNode);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function detectAgentType(text) {
+            if (text.includes('上联') && text.includes('下联')) {
+                return { type: 'couplet', label: '对联大师' };
+            }
+            if (text.includes('路线') || text.includes('公里') || text.includes('行驶')) {
+                return { type: 'travel', label: '旅行规划师' };
+            }
+            if (text.includes('笑') || text.includes('哈哈') || text.includes('有趣')) {
+                return { type: 'joke', label: '笑话大师' };
+            }
+            return { type: 'other', label: '智能助手' };
+        }
+
+        function createTypingIndicator() {
+            const div = document.createElement('div');
+            div.className = 'message bot';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '🤖';
+            
+            const content = document.createElement('div');
+            content.className = 'typing-indicator';
+            
+            const dots = document.createElement('div');
+            dots.className = 'typing-dots';
+            
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'typing-dot';
+                dots.appendChild(dot);
+            }
+            
+            content.appendChild(dots);
+            div.appendChild(avatar);
+            div.appendChild(content);
+            
+            return div;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function clearChat() {
+            const messages = document.getElementById('chatMessages');
+            messages.innerHTML = `
+                <div class="message bot">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div class="agent-type agent-other">系统</div>
+                        你好！我是多智能体助手，我可以帮你：
+                        <ul>
+                            <li>🗺️ 规划旅行路线</li>
+                            <li>😄 讲笑话</li>
+                            <li>📜 创作对联</li>
+                        </ul>
+                        请问有什么可以帮助你的？
+                    </div>
+                </div>
+            `;
+            threadId = null;
+        }
+
+        // 自动聚焦输入框
+        document.getElementById('chatInput').focus();
+    </script>
+</body>
+</html>

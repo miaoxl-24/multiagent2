@@ -1,0 +1,19 @@
+# LangGraph & LangChain
+langgraph>=0.1.0
+langchain>=0.1.0
+langchain_community>=0.0.20
+langchain-mcp-adapters>=0.1.0
+
+# 语言模型
+dashscope>=1.14.0
+
+# 数据库
+redis>=5.0.0
+langchain-redis>=0.1.0
+
+# 后端服务
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# 其他
+python-dotenv>=1.0.0
